@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 
 	"lfs-minio/lfs"
@@ -13,6 +14,8 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, nil)))
+
 	lfsEvents, lfsRespond := lfs.Begin()
 
 	_ = (<-lfsEvents).(*lfs.Init)

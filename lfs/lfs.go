@@ -97,7 +97,7 @@ func events(r io.Reader) <-chan Event {
 				continue
 			}
 
-			fmt.Fprintf(os.Stderr, "<- %s\n", line)
+			slog.Debug(fmt.Sprintf("<- %s\n", line))
 
 			var probe struct {
 				Event string `json:"event"`
@@ -144,7 +144,7 @@ func responder(w io.Writer) func(Response) {
 		defer mu.Unlock()
 
 		b, _ := json.Marshal(resp)
-		fmt.Fprintf(os.Stderr, "-> %s\n", b)
+		slog.Debug(fmt.Sprintf("-> %s\n", b))
 
 		w.Write(b)
 		fmt.Fprintf(w, "\n")
