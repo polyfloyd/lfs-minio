@@ -115,6 +115,8 @@ func events(r io.Reader) <-chan Event {
 				event = &Terminate{}
 			case "upload":
 				event = &Upload{}
+			case "download":
+				event = &Download{}
 			default:
 				slog.Error("unknown lfs event", "event", probe.Event)
 				continue
