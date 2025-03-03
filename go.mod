@@ -1,4 +1,4 @@
-module lfs-minio
+module github.com/polyfloyd/lfs-minio
 
 go 1.23.5
 

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 
-	"lfs-minio/lfs"
+	"github.com/polyfloyd/lfs-minio/lfs"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
