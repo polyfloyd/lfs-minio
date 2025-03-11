@@ -31,6 +31,7 @@ func main() {
 	}
 	lfsRespond(lfs.InitOK())
 
+outer:
 	for event := range lfsEvents {
 		switch t := event.(type) {
 		case *lfs.Upload:
@@ -38,9 +39,11 @@ func main() {
 		case *lfs.Download:
 			srv.download(t)
 		case *lfs.Terminate:
-			return
+			break outer
 		}
 	}
+
+	srv.cleanupTmpFiles()
 }
 
 func minioInit() (*minio.Client, string, error) {
@@ -74,6 +77,8 @@ type transferService struct {
 	minioClient *minio.Client
 	minioBucket string
 	lfsRespond  func(lfs.Response)
+
+	tmpFiles []string
 }
 
 func (srv *transferService) upload(event *lfs.Upload) {
@@ -99,12 +104,14 @@ func (srv *transferService) upload(event *lfs.Upload) {
 func (srv *transferService) download(event *lfs.Download) {
 	ctx := context.Background()
 
-	ofile, err := os.CreateTemp(".", ".lfsdl-*") // TODO: Clean up leaked file in case of error
+	ofile, err := os.CreateTemp(".", ".lfsdl-*")
 	if err != nil {
 		srv.lfsRespond(lfs.TransferError(event.OID, err))
 		return
 	}
 	defer ofile.Close()
+
+	srv.tmpFiles = append(srv.tmpFiles, ofile.Name())
 
 	obj, err := srv.minioClient.GetObject(ctx, srv.minioBucket, event.OID, minio.GetObjectOptions{})
 	if err != nil {
@@ -120,4 +127,10 @@ func (srv *transferService) download(event *lfs.Download) {
 	}
 
 	srv.lfsRespond(lfs.DownloadComplete(event.OID, ofile.Name()))
+}
+
+func (srv *transferService) cleanupTmpFiles() {
+	for _, f := range srv.tmpFiles {
+		_ = os.Remove(f)
+	}
 }
