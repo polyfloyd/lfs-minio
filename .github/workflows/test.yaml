@@ -1,0 +1,43 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version: stable
+
+    - name: Check go mod
+      run: |
+        go mod tidy
+        git diff --exit-code go.mod
+        git diff --exit-code go.sum
+    - name: gofmt
+      run: gofmt -s -d .
+    - name: go build
+      run: go build -v
+    - name: go test
+      run: go test -test.v -cover ./...
+
+  conventional-commits:
+    if: github.event_name == 'pull_request' # Only check PRs.
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - run: pip3 install -U Commitizen
+    - run: cz check --rev-range origin/${{ github.base_ref }}..HEAD
