@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+        - linux-amd64
+        - linux-arm7
+        - linux-arm64
+        - darwin-amd64
+        - darwin-arm64
+        include:
+        - target: linux-amd64
+          goarch: amd64
+          goos: linux
+        - target: linux-arm64
+          goarch: arm64
+          goos: linux
+        - target: darwin-amd64
+          goarch: amd64
+          goos: darwin
+        - target: darwin-arm64
+          goarch: arm64
+          goos: darwin
+
+    needs:
+    - release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version: stable
+
+    - run: go build -o lfs-minio_${{ matrix.target }}
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+
+    - name: Upload binary to release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: lfs-minio_${{ matrix.target }}
