@@ -1,6 +1,7 @@
 module github.com/polyfloyd/lfs-minio
 
 go 1.23.5
+
 toolchain go1.24.1
 
 require github.com/minio/minio-go/v7 v7.0.89
