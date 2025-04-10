@@ -21,7 +21,7 @@ func main() {
 	_ = (<-lfsEvents).(*lfs.Init)
 	minioClient, minioBucket, err := minioInit()
 	if err != nil {
-		lfsRespond(lfs.InitErr(err))
+		lfsRespond(lfs.InitErr(fmt.Errorf("minio init: %w", err)))
 		return
 	}
 	srv := &transferService{
@@ -86,7 +86,7 @@ func (srv *transferService) upload(event *lfs.Upload) {
 
 	ifile, err := os.Open(event.Path)
 	if err != nil {
-		srv.lfsRespond(lfs.TransferError(event.OID, err))
+		srv.lfsRespond(lfs.TransferError(event.OID, fmt.Errorf("open file: %w", err)))
 		return
 	}
 	defer ifile.Close()
@@ -94,7 +94,7 @@ func (srv *transferService) upload(event *lfs.Upload) {
 	r := lfs.ProgressReader(ifile, srv.lfsRespond, event.OID, event.Size)
 
 	if _, err := srv.minioClient.PutObject(ctx, srv.minioBucket, event.OID, r, event.Size, minio.PutObjectOptions{}); err != nil {
-		srv.lfsRespond(lfs.TransferError(event.OID, err))
+		srv.lfsRespond(lfs.TransferError(event.OID, fmt.Errorf("minio put: %w", err)))
 		return
 	}
 
@@ -106,7 +106,7 @@ func (srv *transferService) download(event *lfs.Download) {
 
 	ofile, err := os.CreateTemp(".", ".lfsdl-*")
 	if err != nil {
-		srv.lfsRespond(lfs.TransferError(event.OID, err))
+		srv.lfsRespond(lfs.TransferError(event.OID, fmt.Errorf("create temp file: %w", err)))
 		return
 	}
 	defer ofile.Close()
@@ -115,14 +115,14 @@ func (srv *transferService) download(event *lfs.Download) {
 
 	obj, err := srv.minioClient.GetObject(ctx, srv.minioBucket, event.OID, minio.GetObjectOptions{})
 	if err != nil {
-		srv.lfsRespond(lfs.TransferError(event.OID, err))
+		srv.lfsRespond(lfs.TransferError(event.OID, fmt.Errorf("minio get: %w", err)))
 		return
 	}
 
 	r := lfs.ProgressReader(obj, srv.lfsRespond, event.OID, event.Size)
 
 	if _, err := io.Copy(ofile, r); err != nil {
-		srv.lfsRespond(lfs.TransferError(event.OID, err))
+		srv.lfsRespond(lfs.TransferError(event.OID, fmt.Errorf("download file body: %w", err)))
 		return
 	}
 
