@@ -20,25 +20,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target:
-        - linux-amd64
-        - linux-arm7
-        - linux-arm64
-        - darwin-amd64
-        - darwin-arm64
+        arch:
+        - aarch64
+        - x86_64
+        os:
+        - apple-darwin
+        - unknown-linux-gnu
+        - unknown-linux-musl
         include:
-        - target: linux-amd64
-          goarch: amd64
-          goos: linux
-        - target: linux-arm64
-          goarch: arm64
-          goos: linux
-        - target: darwin-amd64
-          goarch: amd64
+        - os: apple-darwin
           goos: darwin
-        - target: darwin-arm64
+        - os: unknown-linux-gnu
+          goos: linux
+        - os: unknown-linux-musl
+          goos: linux
+        - arch: aarch64
           goarch: arm64
-          goos: darwin
+        - arch: x86_64
+          goarch: amd64
 
     needs:
     - release
@@ -49,12 +48,27 @@ jobs:
       with:
         go-version: stable
 
-    - run: go build -o lfs-minio_${{ matrix.target }}
+    - uses: jirutka/setup-alpine@v1
+      with:
+        branch: v3.21
+        packages: >
+          go
+      if: matrix.os == 'unknown-linux-musl'
+
+    - run: go build -o lfs-minio_${{ matrix.arch }}-${{ matrix.os }}
+      if: matrix.os != 'unknown-linux-musl'
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
 
+    - run: go build -o lfs-minio_${{ matrix.arch }}-${{ matrix.os }}
+      if: matrix.os == 'unknown-linux-musl'
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      shell: alpine.sh {0}
+
     - name: Upload binary to release
       uses: softprops/action-gh-release@v2
       with:
-        files: lfs-minio_${{ matrix.target }}
+        files: lfs-minio_${{ matrix.arch }}-${{ matrix.os }}
